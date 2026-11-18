@@ -120,16 +120,7 @@ impl Drop for SimpleCallOnReturn {
     }
 }
 
-/// `sodium_init()` chooses libsodium's implementations, so it runs before anything else uses the
-/// library: a later call swaps Poly1305 under a computation another thread is in the middle of.
-pub fn init_sodium() {
-    if hbb_common::sodiumoxide::init().is_err() {
-        log::error!("Failed to initialize libsodium");
-    }
-}
-
 pub fn global_init() -> bool {
-    init_sodium();
     #[cfg(all(target_os = "linux", feature = "drm"))]
     crate::platform::linux::dispatch_wayland_display_probe();
     #[cfg(target_os = "linux")]
@@ -2616,15 +2607,6 @@ pub fn get_dst_align_rgba() -> usize {
 pub fn read_custom_client(config: &str) {
     let Ok(data) = decode64(config) else {
         log::error!("Failed to decode custom client config");
-        return;
-    };
-    const KEY: &str = "5Qbwsde3unUcJBtrx9ZkvUmwFNoExHzpryHuPUdqlWM=";
-    let Some(pk) = get_rs_pk(KEY) else {
-        log::error!("Failed to parse public key of custom client");
-        return;
-    };
-    let Ok(data) = sign::verify(&data, &pk) else {
-        log::error!("Failed to dec custom client config");
         return;
     };
     let Ok(mut data) =
